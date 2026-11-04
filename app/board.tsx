@@ -557,7 +557,12 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 12,
   },
-  sectionHeader: { color: INK, fontWeight: "900", letterSpacing: 0.6 },
+  sectionHeader: {
+    color: INK,
+    fontWeight: "900",
+    letterSpacing: 0.6,
+    textAlign: "center",
+  },
 
   row: {
     width: "100%",
