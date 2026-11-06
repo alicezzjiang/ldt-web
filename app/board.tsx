@@ -88,8 +88,8 @@ export default function Board() {
   const SECTION_H = Math.round(rsize(winW, 20, 16, 26));
   const text = { H1, H1_LH, H2, KICKER_SIZE, COPY_SIZE, COPY_LH, SECTION_H };
 
-  const numColumns = winW < 520 ? 1 : winW < 820 ? 2 : winW < 1100 ? 3 : 4;
-  const gutter = isMobile ? 16 : isTablet ? 20 : 24;
+  const numColumns = winW < 820 ? 2 : winW < 1100 ? 3 : 4;
+  const gutter = isMobile ? 12 : isTablet ? 20 : 24;
   // every card is the same width; rows with fewer cards just leave space
   const rowW = Math.min(winW - 32, CONTAINER_MAX);
   const CARD_W = Math.floor((rowW - (numColumns - 1) * gutter) / numColumns);
@@ -340,7 +340,11 @@ function TermBlock({
               </Text>
             </View>
 
-            {toRows(members, numColumns).map((row, r) => (
+            {/* phones fill a plain 2-column grid: `newRow` would leave lone cards */}
+            {(isMobile
+              ? chunk(members, numColumns)
+              : toRows(members, numColumns)
+            ).map((row, r) => (
               <View
                 key={r}
                 style={[styles.row, { gap: gutter, marginBottom: gutter }]}
@@ -350,6 +354,7 @@ function TermBlock({
                     key={`${term.label}-${member.name}-${member.role}`}
                     member={member}
                     cardWidth={cardWidth}
+                    compact={isMobile}
                   />
                 ))}
               </View>
@@ -365,9 +370,11 @@ function TermBlock({
 function MemberCard({
   member,
   cardWidth,
+  compact,
 }: {
   member: BoardMember;
   cardWidth: number;
+  compact: boolean;
 }) {
   const mainSrc = member.photo ?? PLACEHOLDER;
   const altSrc = member.photoshoot;
@@ -426,30 +433,62 @@ function MemberCard({
               ]}
             />
           )}
-          <View style={styles.rolePill}>
-            <Text style={styles.rolePillText}>{member.role}</Text>
+          <View
+            style={[
+              styles.rolePill,
+              compact && [
+                styles.rolePillCompact,
+                { maxWidth: cardWidth - 16 },
+              ],
+            ]}
+          >
+            <Text
+              style={[
+                styles.rolePillText,
+                compact && styles.rolePillTextCompact,
+              ]}
+            >
+              {member.role}
+            </Text>
           </View>
         </View>
       </Pressable>
 
-      <View style={styles.meta}>
-        <Text style={styles.name}>{member.name}</Text>
+      {/* compact cards have a fixed text area, so every card is the same size */}
+      <View style={compact ? styles.metaCompact : styles.meta}>
+        <Text
+          style={[styles.name, compact && styles.nameCompact]}
+          numberOfLines={compact ? 1 : undefined}
+        >
+          {member.name}
+        </Text>
 
-        <View style={styles.detailsBlock}>
+        <View
+          style={[styles.detailsBlock, compact && styles.detailsBlockCompact]}
+        >
           {!!member.major && (
-            <Text style={styles.detailText}>
+            <Text
+              style={[styles.detailText, compact && styles.detailTextCompact]}
+              numberOfLines={compact ? 3 : undefined}
+            >
               <Text style={styles.detailLabel}>Major: </Text>
               {member.major}
             </Text>
           )}
           {!!member.year && (
-            <Text style={styles.detailText}>
+            <Text
+              style={[styles.detailText, compact && styles.detailTextCompact]}
+              numberOfLines={compact ? 1 : undefined}
+            >
               <Text style={styles.detailLabel}>Year: </Text>
               {member.year}
             </Text>
           )}
           {!!member.pronouns && (
-            <Text style={styles.detailText}>
+            <Text
+              style={[styles.detailText, compact && styles.detailTextCompact]}
+              numberOfLines={compact ? 1 : undefined}
+            >
               <Text style={styles.detailLabel}>Pronouns: </Text>
               {member.pronouns}
             </Text>
@@ -460,16 +499,26 @@ function MemberCard({
 
         <View style={styles.socialRow}>
           {!!member.instagram && (
-            <Chip label="Instagram" href={member.instagram} />
+            <Chip label="Instagram" href={member.instagram} compact={compact} />
           )}
-          {!!member.website && <Chip label="Website" href={member.website} />}
+          {!!member.website && (
+            <Chip label="Website" href={member.website} compact={compact} />
+          )}
         </View>
       </View>
     </View>
   );
 }
 
-function Chip({ label, href }: { label: string; href: string }) {
+function Chip({
+  label,
+  href,
+  compact,
+}: {
+  label: string;
+  href: string;
+  compact: boolean;
+}) {
   return (
     <Pressable
       onPress={() => Linking.openURL(href)}
@@ -477,13 +526,16 @@ function Chip({ label, href }: { label: string; href: string }) {
       accessibilityLabel={label}
       style={({ pressed }) => [
         styles.chip,
+        compact && styles.chipCompact,
         {
           borderColor: pressed ? PURPLE : ACCENT,
           transform: [{ scale: pressed ? 0.98 : 1 }],
         },
       ]}
     >
-      <Text style={styles.chipText}>{label}</Text>
+      <Text style={[styles.chipText, compact && styles.chipTextCompact]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -605,10 +657,20 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     fontSize: 12,
   },
+  rolePillCompact: {
+    left: 6,
+    bottom: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  rolePillTextCompact: { fontSize: 10, letterSpacing: 0.2, lineHeight: 13 },
 
   meta: { padding: 12, gap: 8, flex: 1 },
+  metaCompact: { height: 162, padding: 8, gap: 4 },
   flexSpacer: { flexGrow: 1 },
   name: { color: INK, fontWeight: "900", fontSize: 18, letterSpacing: 0.3 },
+  nameCompact: { fontSize: 13, letterSpacing: 0 },
 
   socialRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: {
@@ -618,7 +680,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 2,
   },
+  chipCompact: { paddingHorizontal: 8, paddingVertical: 4 },
   chipText: { color: INK, fontWeight: "700", fontSize: 12, letterSpacing: 0.2 },
+  chipTextCompact: { fontSize: 11 },
 
   detailsBlock: {
     gap: 2,
@@ -631,6 +695,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     ...(Platform.OS === "web" ? { wordBreak: "break-word" } : {}),
   },
+  detailsBlockCompact: { minHeight: 0, gap: 1 },
+  detailTextCompact: { fontSize: 12, lineHeight: 16 },
   detailLabel: {
     fontWeight: "800",
     letterSpacing: 0.2,
